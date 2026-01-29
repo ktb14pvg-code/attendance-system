@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ប្រព័ន្ធគ្រប់គ្រងវត្តមានសិស្ស</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;700&family=Moul&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kantumruy Pro', sans-serif; }
+        .khmer-moul { font-family: 'Moul', serif; }
+        .pdf-text-11 { font-size: 11pt; line-height: 1.5; }
+        .signature-grid { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin-top: 10px; }
+        .sig-col { text-align: center; }
+        .student-photo-box { width: 50px; height: 60px; border: 1px solid #ddd; object-fit: cover; border-radius: 4px; }
+        @media print { .no-print { display: none; } }
+        .pdf-header-item:empty { display: none; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+<!-- FULL FIREBASE ONLINE VERSION -->
+<div id="app"></div>
+
+<!-- Firebase Config: REPLACE the object below with your real Firebase config -->
+<script>
+  const firebaseConfig = {
+  apiKey: "AIzaSyBIEQ5a6qS0uP0fRHs_5Bpw9cvRySxFk5A",
+  authDomain: "attendance-students-kh.firebaseapp.com",
+  projectId: "attendance-students-kh",
+  storageBucket: "attendance-students-kh.firebasestorage.app",
+  messagingSenderId: "61034722707",
+  appId: "1:61034722707:web:a5dd06194f6dc179e52466",
+  measurementId: "G-B2NRVHEEDM"
+};
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // Simple test
+  signInAnonymously(auth).then(() => {
+    document.getElementById('app').innerHTML = `
+      <div class="p-10 text-center">
+        <h2 class="khmer-moul text-xl text-green-600">Firebase Online Connected ✓</h2>
+        <p class="mt-2">ឥឡូវប្រព័ន្ធរបស់អ្នកបានភ្ជាប់ Online Database រួចហើយ</p>
+      </div>
+    `;
+  }).catch((e)=>{
+    document.getElementById('app').innerHTML = `<p class="text-red-600">Firebase Error: ${e}</p>`;
+  });
+</script>
+
+</body>
+</html>
