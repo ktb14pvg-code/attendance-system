@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ប្រព័ន្ធគ្រប់គ្រងវត្តមានសិស្ស (Online Firebase)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;700&family=Moul&display=swap" rel="stylesheet">
+  <style>
+    body{font-family:'Kantumruy Pro',sans-serif;}
+    .khmer-moul{font-family:'Moul',serif;}
+    .student-photo{width:50px;height:60px;border:1px solid #ddd;object-fit:cover;border-radius:4px;}
+    @media print{.no-print{display:none;}}
+  </style>
+</head>
+<body class="bg-gray-100">
+
+<!-- LOGIN -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded shadow w-full max-w-md">
+    <h2 class="khmer-moul text-xl text-center mb-4">ចូលប្រើប្រាស់ប្រព័ន្ធ</h2>
+    <input id="login-email" type="email" placeholder="Email" class="border p-2 w-full mb-3 rounded" />
+    <input id="login-password" type="password" placeholder="Password" class="border p-2 w-full mb-3 rounded" />
+    <div id="login-error" class="text-red-600 text-sm mb-2"></div>
+    <button onclick="loginUser()" class="bg-indigo-600 text-white w-full py-2 rounded mb-2">ចូលប្រើ</button>
+    <button onclick="showRegister()" class="bg-green-600 text-white w-full py-2 rounded">បង្កើតគណនីថ្មី</button>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div id="register-screen" class="hidden min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded shadow w-full max-w-md">
+    <h2 class="khmer-moul text-xl text-center mb-4">បង្កើតគណនីថ្មី</h2>
+    <input id="reg-email" type="email" placeholder="Email" class="border p-2 w-full mb-3 rounded" />
+    <input id="reg-password" type="password" placeholder="Password (>=6 តួអក្សរ)" class="border p-2 w-full mb-3 rounded" />
+    <input id="reg-confirm" type="password" placeholder="បញ្ជាក់ Password ម្តងទៀត" class="border p-2 w-full mb-3 rounded" />
+    <div id="reg-error" class="text-red-600 text-sm mb-2"></div>
+    <button onclick="registerUser()" class="bg-green-600 text-white w-full py-2 rounded mb-2">បង្កើតគណនី</button>
+    <button onclick="showLogin()" class="bg-gray-600 text-white w-full py-2 rounded">ត្រឡប់ទៅ Login</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+<nav class="bg-indigo-900 text-white p-4 shadow-lg no-print">
+  <div class="max-w-6xl mx-auto flex justify-between">
+    <span class="khmer-moul text-xl">ប្រព័ន្ធវត្តមានសិស្ស (Online)</span>
+    <div class="space-x-2">
+      <button onclick="switchTab('attendance')" class="px-3 py-1 bg-indigo-600 rounded">កត់វត្តមាន</button>
+      <button onclick="switchTab('students')" class="px-3 py-1 bg-indigo-600 rounded">គ្រប់គ្រងសិស្ស</button>
+      <button onclick="switchTab('reports')" class="px-3 py-1 bg-indigo-600 rounded">របាយការណ៍</button>
+      <button onclick="logoutUser()" class="px-3 py-1 bg-red-600 rounded">ចាកចេញ</button>
+    </div>
+  </div>
+</nav>
+
+<div class="max-w-6xl mx-auto p-6">
+
+<!-- ATTENDANCE -->
+<div id="tab-attendance" class="hidden">
+  <div class="bg-white p-4 rounded shadow">
+    <h3 class="khmer-moul mb-2">កត់វត្តមានប្រចាំថ្ងៃ</h3>
+    <div class="flex gap-2 mb-3">
+      <input type="date" id="att-date" class="border p-2 rounded">
+      <select id="att-class" class="border p-2 rounded"></select>
+      <button onclick="loadAttendance()" class="bg-indigo-600 text-white px-4 rounded">បង្ហាញ</button>
+    </div>
+    <table class="w-full border">
+      <thead class="bg-gray-200">
+        <tr><th>ល.រ</th><th>ឈ្មោះ</th><th>មក</th><th>ច្បាប់</th><th>អវត្តមាន</th></tr>
+      </thead>
+      <tbody id="att-list"></tbody>
+    </table>
+    <button onclick="saveAttendance()" class="bg-green-600 text-white px-4 py-2 mt-3 rounded">រក្សាទុកវត្តមាន</button>
+  </div>
+</div>
+
+<!-- STUDENTS -->
+<div id="tab-students" class="hidden">
+<!-- CLASS FORM MODAL -->
+<div id="class-form-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded w-full max-w-md">
+    <h3 class="khmer-moul mb-3">បង្កើតថ្នាក់</h3>
+    <input id="cf-org" class="border p-2 w-full mb-2" placeholder="អង្គភាពគ្រប់គ្រង">
+    <input id="cf-school" class="border p-2 w-full mb-2" placeholder="ឈ្មោះសាលា">
+    <input id="cf-name" class="border p-2 w-full mb-2" placeholder="ថ្នាក់">
+    <input id="cf-city" class="border p-2 w-full mb-2" placeholder="ទីកន្លែង">
+    <input id="cf-teacher" class="border p-2 w-full mb-2" placeholder="គ្រូបន្ទុកថ្នាក់">
+    <div class="flex gap-2">
+      <button onclick="saveClassForm()" class="bg-green-600 text-white px-4 py-1 rounded">រក្សាទុក</button>
+      <button onclick="classFormModal.classList.add('hidden')" class="bg-gray-500 text-white px-4 py-1 rounded">បិទ</button>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT FORM MODAL -->
+<div id="student-form-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded w-full max-w-md">
+    <h3 class="khmer-moul mb-3">បន្ថែមសិស្ស</h3>
+    <input id="sf-code" class="border p-2 w-full mb-2" placeholder="អត្តលេខ">
+    <input id="sf-name" class="border p-2 w-full mb-2" placeholder="ឈ្មោះសិស្ស">
+    <input id="sf-gender" class="border p-2 w-full mb-2" placeholder="ភេទ">
+    <input id="sf-dob" class="border p-2 w-full mb-2" placeholder="ថ្ងៃកំណើត">
+    <input id="sf-parent" class="border p-2 w-full mb-2" placeholder="អាណាព្យាបាល">
+    <input id="sf-phone" class="border p-2 w-full mb-2" placeholder="លេខទូរស័ព្ទ">
+    <select id="sf-class" class="border p-2 w-full mb-2"></select>
+    <input id="sf-photo" type="file" accept="image/*" class="mb-2">
+    <div class="flex gap-2">
+      <button onclick="saveStudentForm()" class="bg-green-600 text-white px-4 py-1 rounded">រក្សាទុក</button>
+      <button onclick="studentFormModal.classList.add('hidden')" class="bg-gray-500 text-white px-4 py-1 rounded">បិទ</button>
+    </div>
+  </div>
+</div>
+  <div class="flex gap-2 mb-3 no-print">
+    <button onclick="addClassPrompt()" class="bg-indigo-600 text-white px-3 rounded">+ បង្កើតថ្នាក់</button>
+    <button onclick="addStudentPrompt()" class="bg-green-600 text-white px-3 rounded">+ បន្ថែមសិស្ស</button>
+    <select id="stu-class-filter" class="border p-2 rounded"></select>
+    <button onclick="loadStudents()" class="bg-gray-600 text-white px-3 rounded">បង្ហាញ</button>
+  </div>
+
+  <table class="w-full bg-white shadow rounded">
+    <thead class="bg-gray-200">
+      <tr>
+        <th>ល.រ</th><th>រូប</th><th>ឈ្មោះ</th><th>ភេទ</th><th>ថ្ងៃកំណើត</th><th>អាណាព្យាបាល</th><th>លេខទូរស័ព្ទ</th><th>ថ្នាក់</th>
+      </tr>
+    </thead>
+    <tbody id="stu-list"></tbody>
+  </table>
+</div>
+
+<!-- REPORTS -->
+<div id="tab-reports" class="hidden">
+  <div class="flex gap-2 mb-4 no-print">
+    <select id="report-type" class="border p-2 rounded">
+      <option value="day">ប្រចាំថ្ងៃ</option>
+      <option value="week">ប្រចាំសប្ដាហ៍</option>
+      <option value="month" selected>ប្រចាំខែ</option>
+      <option value="quarter">ប្រចាំត្រីមាស</option>
+      <option value="semester">ប្រចាំឆមាស</option>
+    </select>
+    <select id="report-class" class="border p-2 rounded"></select>
+    <button onclick="generatePDF()" class="bg-red-600 text-white px-4 rounded">ទាញយក PDF</button>
+  </div>
+
+  <div id="pdf-content" class="bg-white p-12 shadow max-w-4xl mx-auto text-black">
+    <div class="text-center mb-2">
+      <h1 class="khmer-moul text-xl">ព្រះរាជាណាចក្រកម្ពុជា</h1>
+      <h2 class="khmer-moul text-lg">ជាតិ សាសនា ព្រះមហាក្សត្រ</h2>
+      <img src="https://lh3.googleusercontent.com/u/0/d/1BnGzoisjHxGRiMbsrP-rZ1F9zvSfdtAh" class="h-6 mx-auto my-1" />
+      <div id="pdf-org" class="text-sm"></div>
+      <div id="pdf-school" class="text-sm"></div>
+      <div id="pdf-class" class="text-sm"></div>
+    </div>
+
+    <h3 id="report-title" class="khmer-moul text-center mb-4 underline">របាយការណ៍វត្តមានសិស្ស (ប្រចាំខែ)</h3>
+
+    <table class="w-full border-collapse border border-black text-sm mb-6">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="border p-1">ល.រ</th>
+          <th class="border p-1">ឈ្មោះសិស្ស</th>
+          <th class="border p-1">មក</th>
+          <th class="border p-1">ច្បាប់</th>
+          <th class="border p-1">អវត្តមាន</th>
+          <th class="border p-1">ភាគរយ %</th>
+        </tr>
+      </thead>
+      <tbody id="report-body"></tbody>
+    </table>
+
+    <div class="text-right text-sm">
+      <p id="pdf-lunar"></p>
+      <p id="pdf-solar"></p>
+    </div>
+
+    <div class="grid grid-cols-2 mt-8 text-sm">
+      <div class="text-center">
+        <p class="khmer-moul">បានឃើញ និងឯកភាព</p>
+        <p class="khmer-moul">នាយក</p>
+      </div>
+      <div class="text-center">
+        <p class="khmer-moul">គ្រូបន្ទុកថ្នាក់</p>
+        <p id="pdf-teacher" class="khmer-moul"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<!-- UI TAB SWITCH -->
+<script>
+function switchTab(tab){
+  ['attendance','students','reports'].forEach(t=>{
+    const el=document.getElementById('tab-'+t);
+    if(el) el.classList.add('hidden');
+  });
+  const active=document.getElementById('tab-'+tab);
+  if(active) active.classList.remove('hidden');
+}
+
+document.addEventListener('DOMContentLoaded',()=>switchTab('students'));
+</script>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBIEQ5a6qS0uP0fRHs_5Bpw9cvRySxFk5A",
+  authDomain: "attendance-students-kh.firebaseapp.com",
+  projectId: "attendance-students-kh",
+  storageBucket: "attendance-students-kh.firebasestorage.app",
+  messagingSenderId: "61034722707",
+  appId: "1:61034722707:web:a5dd06194f6dc179e52466"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let userId=null;
+window.classes=[];
+window.students=[];
+window.attendance=[];
+
+onAuthStateChanged(auth,user=>{
+  if(user){
+    userId=user.uid;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    subscribeData();
+  }
+});
+
+window.showRegister=()=>{loginScreen.classList.add('hidden');registerScreen.classList.remove('hidden');}
+window.showLogin=()=>{registerScreen.classList.add('hidden');loginScreen.classList.remove('hidden');}
+
+window.loginUser=async()=>{
+  loginError.innerText='';
+  try{
+    await signInWithEmailAndPassword(auth,loginEmail.value,loginPassword.value);
+  }catch(e){
+    loginError.innerText='Email ឬ Password មិនត្រឹមត្រូវ';
+  }
+}
+
+window.registerUser=async()=>{
+  regError.innerText='';
+  if(regPassword.value!==regConfirm.value){
+    regError.innerText='Password មិនដូចគ្នា';
+    return;
+  }
+  try{
+    await createUserWithEmailAndPassword(auth,regEmail.value,regPassword.value);
+    alert('បង្កើតគណនីរួចរាល់! សូម Login');
+    showLogin();
+  }catch(e){
+    regError.innerText='Email មិនត្រឹមត្រូវ ឬ Password ខ្សោយ';
+  }
+}
+
+window.registerUser=async()=>{
+  await createUserWithEmailAndPassword(auth,loginEmail.value,loginPassword.value);
+  alert('បង្កើតគណនីរួចរាល់');
+}
+
+window.logoutUser=async()=>{
+  await signOut(auth);
+  location.reload();
+}
+
+function subscribeData(){
+  onSnapshot(collection(db,'users',userId,'classes'),snap=>{
+    window.classes=snap.docs.map(d=>({id:d.id,...d.data()}));
+    refreshDropdowns();
+  });
+  onSnapshot(collection(db,'users',userId,'students'),snap=>{
+    window.students=snap.docs.map(d=>({id:d.id,...d.data()}));
+    loadStudents();
+  });
+  onSnapshot(collection(db,'users',userId,'attendance'),snap=>{
+    window.attendance=snap.docs.map(d=>({id:d.id,...d.data()}));
+  });
+}
+
+function refreshDropdowns(){
+  attClass.innerHTML = classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  stuClassFilter.innerHTML = classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  reportClass.innerHTML = classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  sfClass.innerHTML = classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+  attClass.innerHTML = classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  stuClassFilter.innerHTML = classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  reportClass.innerHTML = classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+// Show full screen class form
+window.addClassPrompt=()=>{document.getElementById('class-form-modal').classList.remove('hidden');}
+
+window.saveClassForm=async()=>{
+  const org=cfOrg.value; const school=cfSchool.value; const name=cfName.value; const city=cfCity.value||'រាជធានីភ្នំពេញ'; const teacher=cfTeacher.value;
+  const now=new Date(); const solar=now.toLocaleDateString('km-KH',{year:'numeric',month:'long',day:'numeric'});
+  const lunar='ថ្ងៃព្រហស្បតិ៍ ១១កើត ខែមាឃ ឆ្នាំម្សាញ់ សប្ដស័ក ព.ស ២៥៦៩';
+  if(name) await addDoc(collection(db,'users',userId,'classes'),{org,school,name,city,teacher,solar,lunar});
+  classFormModal.classList.add('hidden');
+}
+=()=>{document.getElementById('class-form-modal').classList.remove('hidden');}
+  const org = prompt('អង្គភាពគ្រប់គ្រង');
+  const school = prompt('ឈ្មោះសាលា');
+  const name = prompt('ថ្នាក់');
+  const city = prompt('ទីកន្លែង')||'រាជធានីភ្នំពេញ';
+  const teacher = prompt('គ្រូបន្ទុកថ្នាក់');
+  const now = new Date();
+  const solar = now.toLocaleDateString('km-KH',{year:'numeric',month:'long',day:'numeric'});
+  const lunar = 'ថ្ងៃព្រហស្បតិ៍ ១១កើត ខែមាឃ ឆ្នាំម្សាញ់ សប្ដស័ក ព.ស ២៥៦៩';
+  if(name) await addDoc(collection(db,'users',userId,'classes'),{org,school,name,city,teacher,solar,lunar});
+}
+
+// Show full screen student form
+window.addStudentPrompt=()=>{document.getElementById('student-form-modal').classList.remove('hidden');}
+
+window.saveStudentForm=async()=>{
+  const code=sfCode.value; const name=sfName.value; const gender=sfGender.value; const dob=sfDob.value; const parent=sfParent.value; const phone=sfPhone.value; const classId=sfClass.value;
+  let photo=''; const file=sfPhoto.files[0]; if(file){const rd=new FileReader(); await new Promise(r=>{rd.onload=()=>{photo=rd.result;r();}; rd.readAsDataURL(file);});}
+  if(name) await addDoc(collection(db,'users',userId,'students'),{code,name,gender,dob,parent,phone,classId,photo});
+  studentFormModal.classList.add('hidden');
+}
+=()=>{document.getElementById('student-form-modal').classList.remove('hidden');}
+  const code = prompt('អត្តលេខ');
+  const name = prompt('ឈ្មោះសិស្ស');
+  const gender = prompt('ភេទ');
+  const dob = prompt('ថ្ងៃកំណើត');
+  const parent = prompt('អាណាព្យាបាល');
+  const phone = prompt('លេខទូរស័ព្ទ');
+  const classId = stuClassFilter.value;
+  let photo='';
+  const input=document.createElement('input'); input.type='file'; input.accept='image/*';
+  await new Promise(r=>{input.onchange=()=>{const f=input.files[0]; if(f){const rd=new FileReader(); rd.onload=()=>{photo=rd.result;r();}; rd.readAsDataURL(f);} else r();}; input.click();});
+  if(name) await addDoc(collection(db,'users',userId,'students'),{code,name,gender,dob,parent,phone,classId,photo});
+}
+
+window.loadStudents=()=>{
+  const cls=stuClassFilter.value;
+  const list=students.filter(s=>!cls||s.classId===cls);
+  stuList.innerHTML=list.map((s,i)=>`<tr><td>${i+1}</td><td><img src="${s.photo||'https://via.placeholder.com/50x60'}" class="student-photo"></td><td>${s.name}</td><td>${s.gender||''}</td><td>${s.dob||''}</td><td>${s.parent||''}</td><td>${s.phone||''}</td><td>${classes.find(c=>c.id===s.classId)?.name||''}</td></tr>`).join('');
+}
+
+window.loadAttendance=()=>{
+  const date=attDate.value; const cls=attClass.value; if(!date||!cls) return;
+  const list=students.filter(s=>s.classId===cls);
+  const rec=attendance.find(a=>a.date===date&&a.classId===cls);
+  attList.innerHTML=list.map((s,i)=>{const st=rec?.records?.[s.id]||'present';return `<tr><td>${i+1}</td><td>${s.name}</td><td><input type="radio" name="${s.id}" value="present" ${st==='present'?'checked':''}></td><td><input type="radio" name="${s.id}" value="permission" ${st==='permission'?'checked':''}></td><td><input type="radio" name="${s.id}" value="absent" ${st==='absent'?'checked':''}></td></tr>`;}).join('');
+}
+
+window.saveAttendance=async()=>{
+  const date=attDate.value; const cls=attClass.value; if(!date||!cls) return;
+  const records={}; students.filter(s=>s.classId===cls).forEach(s=>{records[s.id]=document.querySelector(`input[name="${s.id}"]:checked`)?.value||'present';});
+  await addDoc(collection(db,'users',userId,'attendance'),{date,classId:cls,records}); alert('រក្សាទុករួចរាល់');
+}
+
+function buildReport(){
+  const classId=reportClass.value; const type=reportType.value; const cls=classes.find(c=>c.id===classId); if(!cls) return;
+  pdfOrg.innerText=cls.org||''; pdfSchool.innerText=cls.school||''; pdfClass.innerText='ថ្នាក់: '+cls.name; pdfTeacher.innerText=cls.teacher||''; pdfLunar.innerText=cls.lunar||''; pdfSolar.innerText=cls.city+' '+cls.solar;
+  const now=new Date();
+  const classAtt=attendance.filter(a=>{if(a.classId!==classId)return false; const d=new Date(a.date);
+    if(type==='day') return d.toDateString()===now.toDateString();
+    if(type==='week'){const ws=new Date(now); ws.setDate(now.getDate()-now.getDay()); const we=new Date(ws); we.setDate(ws.getDate()+6); return d>=ws&&d<=we;}
+    if(type==='month') return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    if(type==='quarter') return Math.floor(d.getMonth()/3)===Math.floor(now.getMonth()/3)&&d.getFullYear()===now.getFullYear();
+    if(type==='semester') return Math.floor(d.getMonth()/6)===Math.floor(now.getMonth()/6)&&d.getFullYear()===now.getFullYear(); return true;});
+  const classStudents=students.filter(s=>s.classId===classId);
+  reportBody.innerHTML=classStudents.map((s,i)=>{let p=0,per=0,ab=0; classAtt.forEach(a=>{const st=a.records?.[s.id]; if(st==='present')p++; else if(st==='permission')per++; else if(st==='absent')ab++;}); const total=classAtt.length||1; const percent=((p/total)*100).toFixed(0); return `<tr><td class="border p-1 text-center">${i+1}</td><td class="border p-1">${s.name}</td><td class="border p-1 text-center">${p}</td><td class="border p-1 text-center">${per}</td><td class="border p-1 text-center">${ab}</td><td class="border p-1 text-center">${percent}%</td></tr>`;}).join('');
+}
+
+window.generatePDF=()=>{buildReport(); const typeLabel={day:'ប្រចាំថ្ងៃ',week:'ប្រចាំសប្ដាហ៍',month:'ប្រចាំខែ',quarter:'ប្រចាំត្រីមាស',semester:'ប្រចាំឆមាស'}; document.getElementById('report-title').innerText='របាយការណ៍វត្តមានសិស្ស ('+typeLabel[reportType.value]+')'; html2pdf()().from(pdfContent).save('Attendance_Report.pdf');}
+</script>
+</body>
+</html>
