@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ប្រព័ន្ធគ្រប់គ្រងវត្តមានសិស្ស (Online Firebase)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;700&family=Moul&display=swap" rel="stylesheet">
+  <style>
+    body{font-family:'Kantumruy Pro',sans-serif;}
+    .khmer-moul{font-family:'Moul',serif;}
+    .student-photo{width:50px;height:60px;border:1px solid #ddd;object-fit:cover;border-radius:4px;}
+    @media print{.no-print{display:none;}}
+  </style>
+</head>
+<body class="bg-gray-100">
+
+<!-- Loading Screen -->
+<div id="status" class="min-h-screen flex flex-col items-center justify-center">
+  <h2 class="khmer-moul text-2xl text-gray-500">Connecting to Firebase...</h2>
+</div>
+
+<!-- Main App -->
+<div id="app" class="hidden">
+
+<nav class="bg-indigo-900 text-white p-4 shadow-lg no-print">
+  <div class="max-w-6xl mx-auto flex justify-between">
+    <span class="khmer-moul text-xl">ប្រព័ន្ធវត្តមានសិស្ស (Online)</span>
+    <span id="user-id" class="text-xs"></span>
+  </div>
+</nav>
+
+<div class="max-w-6xl mx-auto p-6">
+  <!-- Tabs -->
+  <div class="flex space-x-4 mb-6 no-print">
+    <button onclick="switchTab('attendance')" class="px-4 py-2 bg-indigo-600 text-white rounded">កត់វត្តមាន</button>
+    <button onclick="switchTab('students')" class="px-4 py-2 bg-indigo-600 text-white rounded">គ្រប់គ្រងសិស្ស</button>
+    <button onclick="switchTab('reports')" class="px-4 py-2 bg-indigo-600 text-white rounded">របាយការណ៍</button>
+  </div>
+
+  <!-- Attendance -->
+  <div id="tab-attendance">
+    <div class="flex gap-4 mb-4">
+      <input type="date" id="att-date" class="border p-2 rounded" />
+      <select id="att-class" class="border p-2 rounded"></select>
+      <button onclick="loadAttendance()" class="bg-green-600 text-white px-4 rounded">បង្ហាញ</button>
+    </div>
+    <table class="w-full bg-white shadow rounded">
+      <thead class="bg-gray-200">
+        <tr><th>ល.រ</th><th>រូប</th><th>ឈ្មោះ</th><th>ស្ថានភាព</th><th>ចំណាំ</th></tr>
+      </thead>
+      <tbody id="att-list"></tbody>
+    </table>
+    <button onclick="saveAttendance()" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded no-print">រក្សាទុក</button>
+  </div>
+
+  <!-- Students -->
+  <div id="tab-students" class="hidden">
+    <div class="flex justify-between mb-4 no-print">
+      <button onclick="openStudentModal()" class="bg-indigo-600 text-white px-4 py-2 rounded">+ បន្ថែមសិស្ស</button>
+      <button onclick="openClassModal()" class="bg-indigo-600 text-white px-4 py-2 rounded">+ បង្កើតថ្នាក់</button>
+    </div>
+
+    <div class="flex gap-4 mb-4">
+      <select id="stu-class-filter" class="border p-2 rounded"></select>
+      <button onclick="loadStudents()" class="bg-green-600 text-white px-4 rounded">បង្ហាញ</button>
+    </div>
+
+    <table class="w-full bg-white shadow rounded">
+      <thead class="bg-gray-200">
+        <tr><th>ល.រ</th><th>រូប</th><th>ឈ្មោះ</th><th>ភេទ</th><th>ថ្ងៃកំណើត</th><th>អាណាព្យាបាល</th><th>ទូរស័ព្ទ</th><th>ថ្នាក់</th><th class="no-print">សកម្មភាព</th></tr>
+      </thead>
+      <tbody id="stu-list"></tbody>
+    </table>
+  </div>
+
+  <!-- Reports -->
+  <div id="tab-reports" class="hidden">
+    <div class="flex justify-between mb-4 no-print">
+      <select id="report-type" class="border p-2 rounded">
+        <option value="day">ថ្ងៃ</option>
+        <option value="week">សប្តាហ៍</option>
+        <option value="month" selected>ខែ</option>
+        <option value="semester">ឆមាស</option>
+      </select>
+      <button onclick="generatePDF()" class="bg-red-600 text-white px-4 py-2 rounded">ទាញយក PDF</button>
+    </div>
+
+    <div id="pdf-content" class="bg-white p-12 shadow max-w-4xl mx-auto text-black">
+      <div class="text-center mb-2">
+        <h1 class="khmer-moul text-xl">ព្រះរាជាណាចក្រកម្ពុជា</h1>
+        <h2 class="khmer-moul text-lg">ជាតិ សាសនា ព្រះមហាក្សត្រ</h2>
+        <div class="flex justify-center my-1">
+          <img src="https://lh3.googleusercontent.com/u/0/d/1BnGzoisjHxGRiMbsrP-rZ1F9zvSfdtAh" class="h-6 object-contain" />
+        </div>
+        <div class="my-1"></div>
+        <div id="school-info" class="text-sm"></div>
+      </div>
+
+      <h3 id="report-title" class="khmer-moul text-center mb-4 underline">របាយការណ៍វត្តមានសិស្ស</h3>
+
+      <table class="w-full border-collapse border border-black text-sm mb-6">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="border border-black p-1">ល.រ</th>
+            <th class="border border-black p-1">ឈ្មោះសិស្ស</th>
+            <th class="border border-black p-1">មក</th>
+            <th class="border border-black p-1">ច្បាប់</th>
+            <th class="border border-black p-1">អវត្តមាន</th>
+            <th class="border border-black p-1">ភាគរយ %</th>
+          </tr>
+        </thead>
+        <tbody id="report-body"></tbody>
+      </table>
+
+      <div class="text-right mt-4 text-sm">
+        <p id="auto-date"></p>
+      </div>
+
+      <div class="grid grid-cols-2 mt-8 text-sm">
+        <div class="text-center">
+          <p class="khmer-moul">បានឃើញ និងឯកភាព</p>
+          <p class="khmer-moul">នាយក</p>
+        </div>
+        <div class="text-center">
+          <p class="khmer-moul">គ្រូបន្ទុកថ្នាក់</p>
+          <p id="teacher-name" class="khmer-moul"></p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    function buildReport(){
+      const clsId=document.getElementById('att-class').value;
+      const cls=classes.find(c=>c.id===clsId)||{};
+      document.getElementById('school-info').innerHTML=
+        `<p>${cls.school||''}</p><p>${cls.name||''}</p>`;
+
+      const now=new Date();
+      document.getElementById('auto-date').innerText=
+        `រាជធានីភ្នំពេញ ថ្ងៃទី${now.getDate()} ខែ${now.getMonth()+1} ឆ្នាំ${now.getFullYear()}`;
+
+      document.getElementById('teacher-name').innerText=cls.teacher||'';
+
+      const clsStudents=students.filter(s=>s.classId===clsId);
+      const rows=clsStudents.map((s,i)=>{
+        let present=0,permission=0,absent=0;
+        attendance.filter(a=>a.classId===clsId).forEach(a=>{
+          const rec=a.records[s.id];
+          if(rec){
+            if(rec.status==='present') present++;
+            if(rec.status==='permission') permission++;
+            if(rec.status==='absent') absent++;
+          }
+        });
+        const total=present+permission+absent;
+        const percent=total?((present/total)*100).toFixed(0):'0';
+        return `<tr>
+          <td class="border border-black p-1 text-center">${i+1}</td>
+          <td class="border border-black p-1">${s.name}</td>
+          <td class="border border-black p-1 text-center">${present}</td>
+          <td class="border border-black p-1 text-center">${permission}</td>
+          <td class="border border-black p-1 text-center">${absent}</td>
+          <td class="border border-black p-1 text-center">${percent}%</td>
+        </tr>`;
+      }).join('');
+      document.getElementById('report-body').innerHTML=rows;
+    }
+    </script>
+
+<script>
+// Generate PDF
+function generatePDF(){
+  buildReport();
+  const element=document.getElementById('pdf-content');
+  html2pdf().from(element).set({
+    margin:0.3,
+    filename:'Attendance_Report.pdf',
+    image:{type:'jpeg',quality:0.98},
+    html2canvas:{scale:2,useCORS:true},
+    jsPDF:{unit:'in',format:'a4',orientation:'portrait'}
+  }).save();
+}
+</script>
+<!-- Firebase Full Integration -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, doc, setDoc, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+  // 🔥 Firebase Config (Your Project)
+  const firebaseConfig = {
+    apiKey: "AIzaSyBIEQ5a6qS0uP0fRHs_5Bpw9cvRySxFk5A",
+    authDomain: "attendance-students-kh.firebaseapp.com",
+    projectId: "attendance-students-kh",
+    storageBucket: "attendance-students-kh.firebasestorage.app",
+    messagingSenderId: "61034722707",
+    appId: "1:61034722707:web:a5dd06194f6dc179e52466"
+  };
+
+  // Init Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // Global Data
+  window.classes = [];
+  window.students = [];
+  window.attendance = [];
+  let userId = null;
+
+  // Sign In
+  await signInAnonymously(auth);
+  onAuthStateChanged(auth, (user) => {
+    if(user){
+      userId = user.uid;
+      document.getElementById('status').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('user-id').innerText = "User: " + user.uid.substring(0,6);
+      subscribeData();
+    }
+  });
+
+  // Subscribe Realtime Data
+  function subscribeData(){
+    onSnapshot(collection(db,'users',userId,'classes'), snap=>{
+      classes = snap.docs.map(d=>({id:d.id,...d.data()}));
+      refreshClassDropdowns();
+    });
+
+    onSnapshot(collection(db,'users',userId,'students'), snap=>{
+      students = snap.docs.map(d=>({id:d.id,...d.data()}));
+      loadStudents();
+    });
+
+    onSnapshot(collection(db,'users',userId,'attendance'), snap=>{
+      attendance = snap.docs.map(d=>({id:d.id,...d.data()}));
+    });
+  }
+
+  // Add Class
+  window.openClassModal = async function(){
+    const name = prompt('ឈ្មោះថ្នាក់');
+    const school = prompt('ឈ្មោះសាលា');
+    const teacher = prompt('ឈ្មោះគ្រូបន្ទុក');
+    if(name){
+      await addDoc(collection(db,'users',userId,'classes'),{name,school,teacher});
+    }
+  }
+
+  // Refresh Dropdowns
+  function refreshClassDropdowns(){
+    const att = document.getElementById('att-class');
+    const stu = document.getElementById('stu-class-filter');
+    att.innerHTML = classes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    stu.innerHTML = att.innerHTML;
+  }
+
+  // Add Student
+  window.openStudentModal = async function(){
+    const name = prompt('ឈ្មោះសិស្ស');
+    const gender = prompt('ភេទ');
+    const cls = document.getElementById('stu-class-filter').value;
+    if(name && cls){
+      await addDoc(collection(db,'users',userId,'students'),{name,gender,classId:cls});
+    }
+  }
+
+  // Load Students
+  window.loadStudents = function(){
+    const cls = document.getElementById('stu-class-filter').value;
+    const list = students.filter(s=>!cls || s.classId===cls);
+    document.getElementById('stu-list').innerHTML = list.map((s,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td><img src="${s.photo||'https://via.placeholder.com/50x60'}" class="student-photo"></td>
+        <td>${s.name}</td>
+        <td>${s.gender||''}</td>
+        <td>${s.dob||''}</td>
+        <td>${s.parent||''}</td>
+        <td>${s.phone||''}</td>
+        <td>${classes.find(c=>c.id===s.classId)?.name||''}</td>
+        <td></td>
+      </tr>
+    `).join('');
+  }
+
+  // Load Attendance
+  window.loadAttendance = function(){
+    const cls = document.getElementById('att-class').value;
+    const date = document.getElementById('att-date').value;
+    const list = students.filter(s=>s.classId===cls);
+    document.getElementById('att-list').innerHTML = list.map((s,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td><img src="${s.photo||'https://via.placeholder.com/50x60'}" class="student-photo"></td>
+        <td>${s.name}</td>
+        <td>
+          <select id="st-${s.id}" class="border">
+            <option value="present">មក</option>
+            <option value="permission">ច្បាប់</option>
+            <option value="absent">អវត្តមាន</option>
+          </select>
+        </td>
+        <td><input id="note-${s.id}" class="border"></td>
+      </tr>
+    `).join('');
+  }
+
+  // Save Attendance
+  window.saveAttendance = async function(){
+    const cls = document.getElementById('att-class').value;
+    const date = document.getElementById('att-date').value;
+    if(!cls || !date) return alert('សូមជ្រើសថ្នាក់ និងថ្ងៃ');
+    const records={};
+    students.filter(s=>s.classId===cls).forEach(s=>{
+      records[s.id]={
+        status:document.getElementById('st-'+s.id).value,
+        note:document.getElementById('note-'+s.id).value
+      }
+    });
+    await setDoc(doc(db,'users',userId,'attendance',date+'_'+cls),{classId:cls,date,records});
+    alert('រក្សាទុករួចរាល់');
+  }
+</script>
+</body>
+</html>
